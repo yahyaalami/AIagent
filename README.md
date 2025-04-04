@@ -41,7 +41,7 @@ Make sure you have the following installed:
 - [Python 3.10+](https://www.python.org/downloads/)
 - [Ollama](https://ollama.com) (running locally with models pulled like `llama2`, `codellama`)
 - Git
-- Optional (for PDF parsing): [LlamaParse credentials if required]
+- Optional (for PDF parsing): LlamaParse API key
 
 ---
 
