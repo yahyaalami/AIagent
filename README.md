@@ -82,15 +82,15 @@ LLAMA_CLOUD_API_KEY=your_api_key_here
 
 ## 📦 Dependencies
 The most important packages in requirements.txt:
-llama-index
-llama-parse
-ollama
-python-dotenv
+- llama-index
+- llama-parse
+- ollama
+- python-dotenv
 
 You can generate the file automatically with:
-pip freeze > requirements.txt
+- pip freeze > requirements.txt
 
 
 
 # ✨ Credits
-Powered by LlamaIndex + Ollama
+- Powered by LlamaIndex + Ollama
