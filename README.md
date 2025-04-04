@@ -51,18 +51,18 @@ Make sure you have the following installed:
 ### 2.Create and activate a virtual environment
 python -m venv ai
 
-Activate on Windows:
+- Activate on Windows:
 ai\Scripts\activate
 
-Or activate on Unix/Mac:
+- Or activate on Unix/Mac:
 source ai/bin/activate
 
 ### 3.Install Python dependencies
-pip install -r requirements.txt
+- pip install -r requirements.txt
 
 ### 4. Pull Ollama models (if not already installed)
-ollama pull llama2
-ollama pull codellama
+- ollama pull llama2
+- ollama pull codellama
 
 
 
