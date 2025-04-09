@@ -1,71 +1,90 @@
 from llama_index.llms.ollama import Ollama
 from llama_parse import LlamaParse
-from llama_index.core import VectorStoreIndex, SimpleDirectoryReader
+from llama_index.core import VectorStoreIndex, SimpleDirectoryReader, PromptTemplate
 from llama_index.core.embeddings import resolve_embed_model
 from llama_index.core.tools import QueryEngineTool, ToolMetadata
 from llama_index.core.agent import ReActAgent
-from prompts import context
+from pydantic import BaseModel
+from llama_index.core.output_parsers import PydanticOutputParser
+from llama_index.core.query_pipeline import QueryPipeline
+from prompts import context, code_parser_template
 from code_reader import code_reader
 from dotenv import load_dotenv
-from llama_index.core.tools import FunctionTool
+import os
+import ast
 
-# Load environment variables from .env
+# Load environment variables
 load_dotenv()
 
-# Load LLM from Ollama (llama2, 120s timeout, no stream)
-llm = Ollama(model="llama2", request_timeout=120.0, stream=False)
+#  Use llama2 instead of mistral for document understanding
+llm = Ollama(model="llama2", request_timeout=30.0)
 
-# Load PDF parser for extracting documentation
+# Set up PDF parser and load documents
 parser = LlamaParse(result_type="markdown")
 file_extractor = {".pdf": parser}
-
-# Load documents from the ./data directory
 documents = SimpleDirectoryReader("./data", file_extractor=file_extractor).load_data()
 
-# Use a lightweight local embedding model
-embed_model = resolve_embed_model("local:sentence-transformers/all-MiniLM-L6-v2")
-
-# Index the documents
+# Set up embedding model and index
+embed_model = resolve_embed_model("local:BAAI/bge-m3")
 vector_index = VectorStoreIndex.from_documents(documents, embed_model=embed_model)
 
-# Query engine based on the indexed documentation
+# Create query engine for documentation
 query_engine = vector_index.as_query_engine(llm=llm)
 
-# Define tool to block the generic invalid `Tool` name
-def invalid_tool(**kwargs):
-    raise Exception("❌ Invalid tool used. You must use only 'code_reader' or 'api_documentation'.")
-
-invalid = FunctionTool.from_defaults(
-    fn=invalid_tool,
-    name="Tool",
-    description="This is an invalid tool name and should not be used."
-)
-
-# Register tools
+# Register tools: doc reader + code reader
 tools = [
     QueryEngineTool(
         query_engine=query_engine,
         metadata=ToolMetadata(
             name="api_documentation",
-            description="This tool answers technical questions using the API documentation (PDFs)."
+            description="This gives documentation about code for an API. Use this to read API documentation.",
         ),
     ),
     code_reader,
-    invalid  # Optional: block invalid generic usage
 ]
 
-# Create the reasoning agent with the tools
-agent = ReActAgent.from_tools(
-    tools=tools,
-    llm=llm,
-    verbose=True,
-    context=context,
-)
+# Code generation LLM (still using codellama)
+code_llm = Ollama(model="codellama")
+agent = ReActAgent.from_tools(tools, llm=code_llm, verbose=True, context=context)
 
-# Prompt loop
+#  Define expected output format
+class CodeOutput(BaseModel):
+    code: str
+    description: str
+    filename: str
+
+#  Pydantic parser + prompt pipeline
+parser = PydanticOutputParser(CodeOutput)
+json_prompt_str = parser.format(code_parser_template)
+json_prompt_tmpl = PromptTemplate(json_prompt_str)
+output_pipeline = QueryPipeline(chain=[json_prompt_tmpl, code_llm])
+
+#  Prompt loop
 while (prompt := input("Enter a prompt (q to quit): ")) != "q":
+    retries = 0
+    while retries < 3:
+        try:
+            result = agent.query(prompt)
+            next_result = output_pipeline.run(response=result)
+            cleaned_json = ast.literal_eval(str(next_result).replace("assistant:", ""))
+            break
+        except Exception as e:
+            retries += 1
+            print(f"Error occurred, retry #{retries}:", e)
+
+    if retries >= 3:
+        print("❌ Unable to process request, try again...")
+        continue
+
+    print("✅ Code generated:")
+    print(cleaned_json["code"])
+    print("\n📝 Description:", cleaned_json["description"])
+
+    filename = cleaned_json["filename"]
     try:
-        result = agent.query(prompt)
-        print("\n🧠 Agent Response:\n", result, "\n")
+        os.makedirs("output", exist_ok=True)
+        with open(os.path.join("output", filename), "w") as f:
+            f.write(cleaned_json["code"])
+        print(f"💾 Saved file: output/{filename}")
     except Exception as e:
-        print("⚠️ Error during agent execution:", e)
+        print("❌ Error saving file:", e)
