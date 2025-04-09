@@ -1,16 +1,23 @@
 # 🧠 AI Agent Code Generator
 
-This project is an intelligent code assistant that leverages **LlamaIndex**, **Ollama**, and a local language model like `llama2` to analyze documents and respond to prompts intelligently. It supports tasks such as reading API documentation from PDF files and inspecting local code files interactively via terminal input.
+This project is an intelligent code assistant that leverages **LlamaIndex**, **Ollama**, and local language models (`llama2`, `codellama`) to analyze documents, respond to prompts, and generate code in a structured format.
+
+It supports:
+- Reading API documentation (PDFs)
+- Inspecting and summarizing local code files
+- Generating new code files with explanations
+- Saving output to disk
 
 ---
 
 ## 🚀 Features
 
-- 🔎 Intelligent prompt understanding and reasoning
-- 📄 Parses and indexes documentation (e.g., PDFs)
-- 🧠 Uses local LLM (via [Ollama](https://ollama.com)) for language reasoning
-- 📂 Reads and returns content of local code files
-- 🤖 Interactive loop with agent responses
+- 🧠 Local LLM reasoning using Ollama (`llama2`, `codellama`)
+- 📄 Parses and indexes PDF documentation
+- 🧾 Reads and explains `.py` files
+- ⚙️ Generates code with description and filename using a structured output format
+- 💾 Saves generated code to the `output/` directory
+- 🔁 Retry system for robust agent interactions
 
 ---
 
@@ -19,12 +26,15 @@ This project is an intelligent code assistant that leverages **LlamaIndex**, **O
 ### Folder & File Explanation
 
 - **`ai/`**  
-  Virtual environment directory (created with `python -m venv ai`).  
-  Not necessary to track with Git – usually added to `.gitignore`.
+  Python virtual environment (optional). Recommended to isolate dependencies.
 
 - **`data/`**  
-  Contains all the **input documents** you want the agent to analyze.  
-  Supports `.pdf` files (API docs) and `.py` files (source code).
+  Folder where you place your input files:
+  - `.pdf` → Documentation
+  - `.py` → Source files the agent can read
+
+- **`output/`**  
+  Folder where the generated Python files are automatically saved.
 
 - **`.env`**  
   Optional environment variables. Example:
@@ -39,13 +49,15 @@ This project is an intelligent code assistant that leverages **LlamaIndex**, **O
 Make sure you have the following installed:
 
 - [Python 3.10+](https://www.python.org/downloads/)
-- [Ollama](https://ollama.com) (running locally with models pulled like `llama2`, `codellama`)
+- [Ollama](https://ollama.com) — local LLM server with `llama2` and `codellama` models pulled
 - Git
-- Optional (for PDF parsing): LlamaParse API key
+- (Optional) [LlamaParse API key](https://cloud.llamaindex.ai) if you want to enable enhanced PDF parsing
 
 ---
 
 ## 🧱 Setup Instructions
+
+
 ### 1. Clone the repository
 
 ### 2.Create and activate a virtual environment
@@ -74,6 +86,12 @@ python Main.py
 + analyze the API documentation in readme.pdf
 + send a post request to make a new item using api in python
 
+### The agent will:
+💬 Process your request
+🧠 Understand your intent
+💾 Save the generated code in the output/ directory
+📄 Provide an explanation of what the code does
+
 
 ##  🔐.env Example (Optional):
 LLAMA_CLOUD_API_KEY=your_api_key_here 
@@ -82,10 +100,11 @@ LLAMA_CLOUD_API_KEY=your_api_key_here
 
 ## 📦 Dependencies
 The most important packages in requirements.txt:
-- llama-index
-- llama-parse
-- ollama
-- python-dotenv
++ llama-index
++ llama-parse
++ ollama
++ python-dotenv
++ pydantic
 
 You can generate the file automatically with:
 - pip freeze > requirements.txt
